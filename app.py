@@ -104,6 +104,8 @@ def verify_voice():
         data = {
             'model': 'whisper-large-v3',
             'language': 'hi' # Hindi/Hinglish ke liye set hai
+          
+            'prompt': 'Nikhil, Harsh, Ranjan, Papa, Arvind, Pankaj Bhaiya, Citron,arvind,soaruv,vicky,piyush kumar,aryan,atul,rahul,abhijit,shabad,ruby,harshit,shivam'
         }
         
         # Groq se transcription maango
@@ -164,4 +166,5 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Starting Flask Server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
