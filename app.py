@@ -114,10 +114,11 @@ def verify_voice():
         headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
         files = {'file': ('auth.wav', audio_file, 'audio/wav')}
         
+      # 🔥 WHISPER HALLUCINATION FIX (No more double names like Harsh हर्ष) 🔥
         data = {
             'model': 'whisper-large-v3',
             'language': 'hi',
-            'prompt': 'मेरा नाम Nikhil (निखिल) है। Harsh (हर्ष), Ranjan (रंजन), Papa (पापा), Arvind (अरविंद), Pankaj Bhaiya (पंकज भैया), Citron (सिट्रोन), Soaruv/Saurabh (सौरभ), Vicky (विक्की), Piyush Kumar (पीयूष कुमार), Aryan (आर्यन), Atul (अतुल), Rahul (राहुल), Abhijit (अभिजीत), Shabad (शबद), Ruby (रूबी), Harshit (हर्षित), Shivam (शिवम) को मैसेज भेजो।',
+            'prompt': 'मेरा नाम Nikhil है। Harsh, Ranjan, Papa, Arvind, Pankaj Bhaiya, Citron, Saurabh, Vicky, Piyush Kumar, Aryan, Atul, Rahul, Abhijit, Shabad, Ruby, Harshit, Shivam को मैसेज भेजो।',
             'temperature': '0.0' 
         }
         
@@ -185,4 +186,5 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Starting Flask Server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
