@@ -101,13 +101,12 @@ def verify_voice():
         
         headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
         files = {'file': ('auth.wav', audio_file, 'audio/wav')}
-        data = {
+      data = {
             'model': 'whisper-large-v3',
             'language': 'hi',
-            'prompt': 'Nikhil, Harsh, Ranjan, Papa, Arvind, Pankaj Bhaiya, Citron, arvind, soaruv, vicky, piyush kumar, aryan, atul, rahul, abhijit, shabad, ruby, harshit, shivam',
-            'temperature': '0.0' # 🔥 ANTI-HALLUCINATION FIX: Bheed ke shor ko words mein convert karne se rokega 🔥
+            'prompt': 'मेरा नाम Nikhil है। Harsh (हर्ष), Ranjan (रंजन), Arvind (अरविंद), Pankaj Bhaiya, Citron, Aryan, Atul, Rahul, Abhijit, Shabad, Ruby, Shivam को मैसेज भेजो।',
+            'temperature': '0.0' 
         }
-        
         response = requests.post("https://api.groq.com/openai/v1/audio/transcriptions", headers=headers, files=files, data=data)
         
         spoken_text = ""
@@ -164,3 +163,4 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Starting Flask Server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)
+
