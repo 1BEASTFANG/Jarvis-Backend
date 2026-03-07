@@ -7,25 +7,29 @@ import os
 import threading
 import time
 import requests
-import google.generativeai as genai
 import json
 
+# 🔥 EK DUM NAYA LATEST GOOGLE GENAI SDK 🔥
+from google import genai
+from google.genai import types
+
 # ==========================================================
-# 🚀 INITIALIZING JARVIS NEURAL CORE (CITRON) 🚀
+# 🚀 INITIALIZING JARVIS NEURAL CORE (LIVE STREAM EDITION) 🚀
 # ==========================================================
 app = Flask(__name__)
 
 # ----------------------------------------------------------
 # 🔐 ADVANCED SECURITY CONFIG (NO KEYS IN CODE)
 # ----------------------------------------------------------
-# Render dashboard se keys uthayega. Ye sabse safe method hai.
-# Agar ye empty milega, toh system initialized nahi hoga.
+# Render dashboard se keys uthayega.
 RAW_KEYS_DATA = os.environ.get("GEMINI_KEYS", "")
 
-# Logic to split comma separated keys into a list
+# Logic to split comma separated keys into a list safely
 if RAW_KEYS_DATA:
     GEMINI_API_KEYS = [k.strip() for k in RAW_KEYS_DATA.split(",") if k.strip()]
+    print("--------------------------------------------------")
     print(f"📦 SYSTEM BOOT: Loaded {len(GEMINI_API_KEYS)} API Keys from Environment.")
+    print("--------------------------------------------------")
 else:
     GEMINI_API_KEYS = []
     print("🚨 CRITICAL WARNING: No GEMINI_KEYS found in Environment Variables!")
@@ -40,67 +44,71 @@ eagle_engine = None
 active_enroll_profiler = None
 
 # ----------------------------------------------------------
-# ⚙️ GEMINI ENGINE ROTATION LOGIC (ROUND-ROBIN)
+# ⚙️ LATEST GEMINI ENGINE ROTATION LOGIC (SDK v2)
 # ----------------------------------------------------------
-def rotate_gemini_config():
-    """Key shift karne ka detailed function jab limit khatam ho jaye"""
-    global current_key_index
-    if not GEMINI_API_KEYS:
-        print("❌ ABORT: Cannot rotate keys. GEMINI_API_KEYS list is empty.")
-        return
-
-    try:
-        target_key = GEMINI_API_KEYS[current_key_index]
-        genai.configure(api_key=target_key)
-        
-        # Printing system status for Render Logs
-        print("--------------------------------------------------")
-        print(f"🔄 CLOUD SYNC: Gemini configured with Key Index [{current_key_index}]")
-        print(f"📡 Status: Ready for High-Priority AI Tasks")
-        print("--------------------------------------------------")
-    except Exception as config_err:
-        print(f"❌ CONFIG ERROR: Global switch failed: {str(config_err)}")
-
-# Pehli key initialize karo deployment ke waqt
-if GEMINI_API_KEYS:
-    rotate_gemini_config()
-
-def call_gemini_safely(model_name, contents):
-    """Attempt call with auto-retry on multiple keys to prevent downtime"""
-    global current_key_index
-    
+def get_active_gemini_client():
+    """Returns a new Gemini client using the current active API Key"""
     if not GEMINI_API_KEYS:
         raise Exception("❌ NO KEYS AVAILABLE: Define GEMINI_KEYS in Render.")
+    
+    active_key = GEMINI_API_KEYS[current_key_index]
+    # Naye SDK mein aise initialize karte hain
+    return genai.Client(api_key=active_key)
 
+def rotate_api_key():
+    """Key shift karne ka detailed function jab limit/quota khatam ho jaye"""
+    global current_key_index
+    if len(GEMINI_API_KEYS) > 1:
+        current_key_index = (current_key_index + 1) % len(GEMINI_API_KEYS)
+        print("--------------------------------------------------")
+        print(f"🔄 DYNAMIC ROUTING: Shifting traffic to Key Index [{current_key_index}]")
+        print("--------------------------------------------------")
+    else:
+        print("⚠️ ROTATION FAILED: Only 1 key is available in the system.")
+
+def execute_gemini_task(model_name, prompt_text, audio_bytes, use_json_mode=False):
+    """Wrapper to handle retries and shifting with the NEW SDK"""
     max_attempts = len(GEMINI_API_KEYS)
     attempts = 0
     
     while attempts < max_attempts:
         try:
-            # Model creation with currently configured key
-            ai_model = genai.GenerativeModel(model_name)
-            ai_response = ai_model.generate_content(contents)
-            return ai_response
+            client = get_active_gemini_client()
+            
+            # Prepare contents (Prompt + Audio) using new SDK format
+            contents = [
+                prompt_text,
+                types.Part.from_bytes(data=audio_bytes, mime_type='audio/wav')
+            ]
+            
+            # JSON mode config for Lecture Ninja
+            config_options = types.GenerateContentConfig(
+                response_mime_type="application/json" if use_json_mode else "text/plain"
+            )
+            
+            ai_response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=config_options
+            )
+            return ai_response.text
+            
         except Exception as e:
             err_msg = str(e).lower()
-            print(f"⚠️ API FAILURE: Attempt {attempts + 1} with Key Index {current_key_index} failed.")
+            print(f"⚠️ API FAILURE: Attempt {attempts + 1} with Key [{current_key_index}] failed.")
             
-            # Google leaked key error handling
             if "403" in err_msg and "leaked" in err_msg:
                 print(f"🛑 SECURITY ALERT: Key {current_key_index} was reported as leaked.")
             
-            # Common quota/limit errors
             if "429" in err_msg or "403" in err_msg or "quota" in err_msg or "limit" in err_msg:
-                print(f"🔄 SHIFTING: Rotating to the next available API key...")
-                current_key_index = (current_key_index + 1) % len(GEMINI_API_KEYS)
-                rotate_gemini_config()
+                rotate_api_key()
                 attempts += 1
-                time.sleep(1.5) # Anti-spam delay
+                time.sleep(1.5) # Buffer before retry
             else:
                 print(f"🚨 UNEXPECTED EXCEPTION: {err_msg}")
                 raise e
                 
-    raise Exception("💀 FATAL ERROR: All provided Gemini API keys are currently non-functional.")
+    raise Exception("💀 FATAL ERROR: All provided Gemini API keys are exhausted or blocked.")
 
 # ----------------------------------------------------------
 # 🎙️ MULTI-PROFILE BIOMETRIC DATABASE
@@ -111,7 +119,7 @@ VOICE_PROFILES_LIST = [
 ]
 
 # ----------------------------------------------------------
-# 🧠 BIOMETRIC ENGINE LOAD sequence
+# 🧠 BIOMETRIC ENGINE LOAD SEQUENCE
 # ----------------------------------------------------------
 try:
     print("💎 JARVIS BIOMETRIC ENGINE: Scanning Ident-Profiles...")
@@ -133,7 +141,7 @@ except Exception as bio_err:
 # 🕒 SERVER PERSISTENCE LOOP
 # ----------------------------------------------------------
 def persistent_ping():
-    """Background thread to prevent Render from going to sleep mode"""
+    """Background thread to prevent Render from going to sleep"""
     while True:
         time.sleep(14 * 60)
         try:
@@ -145,7 +153,7 @@ def persistent_ping():
 threading.Thread(target=persistent_ping, daemon=True).start()
 
 # ==========================================================
-# 🛡️ ROUTE 1: VERIFY IDENTITY (RESTRICTED AUTH FOR WHATSAPP)
+# 🛡️ ROUTE 1: VERIFY IDENTITY (RESTRICTED AUTH FOR COMMANDS)
 # ==========================================================
 @app.route('/verify-voice', methods=['POST'])
 def verify_voice_identity():
@@ -161,10 +169,9 @@ def verify_voice_identity():
     try:
         print("🎙️ IDENTITY CHECK: Analyzing biometric signature...")
         
-        # Identity scoring via Picovoice Engine
         with wave.open(audio_obj, 'rb') as wav_file:
             if wav_file.getframerate() != 16000:
-                return jsonify({"status": "ERROR", "message": "Standard sample rate 16k required"}), 400
+                return jsonify({"status": "ERROR", "message": "Sample rate must be 16k"}), 400
                 
             raw_pcm_data = wav_file.readframes(wav_file.getnframes())
             pcm_shorts = struct.unpack(f"{len(raw_pcm_data) // 2}h", raw_pcm_data)
@@ -172,7 +179,6 @@ def verify_voice_identity():
             f_len = eagle_engine.frame_length
             peak_score = 0.0
             
-            # Step-processing for granular accuracy
             for start in range(0, len(pcm_shorts) - f_len, f_len):
                 chunk_frame = pcm_shorts[start : start + f_len]
                 batch_scores = eagle_engine.process(chunk_frame)
@@ -182,40 +188,30 @@ def verify_voice_identity():
             
             print(f"📊 FINAL SCORE: {peak_score * 100:.2f}% Match Detected.")
             
-            # The Secure Vault Gate (60%)
             if peak_score < 0.60:
                 print("🔴 DENIED: Identity mismatch or high background noise.")
                 return jsonify({"status": "ACCESS_DENIED", "score": peak_score, "text": ""})
             
-            print("🟢 GRANTED: Nikhil confirmed. Switching to Gemini STT engine.")
+            print("🟢 GRANTED: Nikhil confirmed. Sending to Gemini 2.5 Flash STT...")
 
-        # Audio Transcription via the latest Gemini model
         audio_obj.seek(0)
         final_audio_stream = audio_obj.read()
         
         transcription_prompt = """
         You are the Voice Processor for J.A.R.V.I.S.
         Listen to the spoken audio and transcribe it perfectly. 
-        Language: Hinglish/Hindi/English.
-        Speaker: Nikhil.
-        Target Contacts: Harsh, Ranjan, Papa, Arvind, Pankaj Bhaiya, Citron.
+        Speaker: Nikhil. Target Contacts: Harsh, Ranjan, Papa, Arvind, Pankaj Bhaiya, Citron.
         RULES: Clean output only. No conversational filler.
         """
         
-        input_payload = [
-            transcription_prompt, 
-            {"mime_type": "audio/wav", "data": final_audio_stream}
-        ]
-        
-        gemini_response = call_gemini_safely('gemini-2.5-flash', input_payload)
-        transcribed_text = gemini_response.text.strip()
-        
-        print(f"📝 COMMAND CAPTURED: {transcribed_text}")
+        # New SDK wrapper call
+        final_text = execute_gemini_task('gemini-2.5-flash', transcription_prompt, final_audio_stream, use_json_mode=False)
+        print(f"📝 COMMAND CAPTURED: {final_text.strip()}")
             
         return jsonify({
             "status": "ACCESS_GRANTED", 
             "score": peak_score, 
-            "text": transcribed_text 
+            "text": final_text.strip()
         })
                 
     except Exception as server_err:
@@ -223,7 +219,7 @@ def verify_voice_identity():
         return jsonify({"status": "ERROR", "message": str(server_err)}), 500
 
 # ==========================================================
-# 🚀 ROUTE 2: LECTURE NINJA (NO AUTH - MULTIMODAL GEMINI)
+# 🚀 ROUTE 2: LECTURE NINJA (LIVE STREAM & STRICT FORMAT)
 # ==========================================================
 @app.route('/analyze-lecture', methods=['POST'])
 def process_class_lecture():
@@ -233,52 +229,55 @@ def process_class_lecture():
     lecture_audio_file = request.files['audio']
     
     try:
-        print("🧠 LECTURE NINJA CORE: Deep-Processing class audio...")
         lecture_buffer = lecture_audio_file.read()
+        chunk_size_mb = len(lecture_buffer) / (1024 * 1024)
         
-        # 🔥 THE ULTIMATE PROFESSOR CITRON INSTRUCTIONS 🔥
-        citron_logic = """
-        You are 'Citron', the world's smartest AI student. 
-        Transform this audio lecture into EPIC 'Cartoonish & Sci-Fi' study notes.
+        print("--------------------------------------------------")
+        print(f"⏳ LIVE CHUNK RECEIVED: Size {chunk_size_mb:.2f} MB")
+        print("🧠 LECTURE NINJA: Deep-Processing Audio Segment...")
+        print("--------------------------------------------------")
         
-        MANDATORY RULES:
-        1. STYLE: Use fun Hinglish. Be funny but highly accurate.
-        2. FORMATTING: 
-           - Use <b>Bold</b> for technical terms.
-           - Use <br> for spacing.
-           - Use <u>Underlines</u> for sub-headings.
-        3. EMOJIS: Overload the notes with relevant emojis (minimum 3 per block). 🚀🧪🧠💡
-        4. STRUCTURE: Point-wise bullet points ONLY.
+        # 🔥 THE STRICT "PROPER NOTES FORMAT" PROMPT 🔥
+        strict_logic = """
+        You are 'Citron', a highly intelligent AI Note-Taker.
+        You are receiving a short AUDIO CHUNK from a live, continuous college lecture.
         
-        JSON KEYS REQUIRED:
-        - "short_summary": Energetic 3-line breakdown with ⚡.
-        - "detailed_notes": Complete class explanation in HTML (<b>, <br>).
-        - "important_keywords": 5 main topics followed by 🔥.
+        STRICT MISSION:
+        Extract ONLY the educational concepts discussed in THIS specific audio clip. 
+        Do not make up information that is not in the audio.
+        
+        STRICT FORMATTING RULES (PROPER NOTES FORMAT ONLY):
+        1. TONE: Hinglish (Hindi + English), "Indian College Student" vibe.
+        2. STRUCTURE: You MUST use a standard, professional study-note format (Bullet points, Headings). Do not write paragraphs.
+        3. HTML TAGS: Use ONLY <b> for bolding important terms/headings and <br> for line breaks. Do NOT use Markdown (* or #).
+        4. EMOJIS: Add relevant educational emojis at the start of points (🚀, 💡, 🧠, 📊, ⚙️).
+        5. DETAIL: Even if the chunk is short, explain whatever was said thoroughly as if preparing for an exam.
+        
+        OUTPUT SCHEMA: Return ONLY valid JSON matching this exact structure:
+        {
+          "short_summary": "1-2 line energetic summary of THIS specific chunk.",
+          "detailed_notes": "Properly formatted bulleted notes using <b> and <br>.",
+          "important_keywords": "Comma-separated list of top 3-4 terms, ending with 🔥."
+        }
         """
         
-        ninja_payload = [
-            citron_logic, 
-            {"mime_type": "audio/wav", "data": lecture_buffer}
-        ]
+        # Execute with JSON mode enforced via the new SDK
+        response_text = execute_gemini_task('gemini-2.5-flash', strict_logic, lecture_buffer, use_json_mode=True)
         
-        ai_response = call_gemini_safely('gemini-2.5-flash', ninja_payload)
+        # Parse JSON
+        raw_text_clean = response_text.strip().replace('```json', '').replace('```', '').strip()
+        json_notes_final = json.loads(raw_text_clean)
         
-        # Cleaning and parsing JSON from Gemini
-        raw_ai_text = ai_response.text.strip()
-        filtered_json = raw_ai_text.replace('```json', '').replace('```', '').strip()
-        
-        json_notes_final = json.loads(filtered_json)
-        
-        print("✅ SUCCESS: Classroom insights generated and formatted.")
+        print("✅ SUCCESS: Structured study notes generated for this chunk.")
         return jsonify({
             "status": "SUCCESS",
-            "short_summary": json_notes_final.get("short_summary", "No summary found."),
-            "detailed_notes": json_notes_final.get("detailed_notes", "No detailed notes found."),
-            "important_keywords": json_notes_final.get("important_keywords", "No keywords extracted.")
+            "short_summary": json_notes_final.get("short_summary", "Summary missing 😢"),
+            "detailed_notes": json_notes_final.get("detailed_notes", "Notes missing 😢"),
+            "important_keywords": json_notes_final.get("important_keywords", "Keywords missing 😢")
         })
 
     except Exception as ninja_err:
-        print(f"❌ NINJA PROCESSING FAILED: {str(ninja_err)}")
+        print(f"❌ CHUNK PROCESSING FAILED: {str(ninja_err)}")
         return jsonify({"status": "ERROR", "message": str(ninja_err)}), 500
 
 # ----------------------------------------------------------
@@ -315,10 +314,9 @@ def register_new_biometric_id():
 # ----------------------------------------------------------
 @app.route('/')
 def system_status():
-    return f"Citron Engine: 100% | Auth: Bio-Locked | Keys: {len(GEMINI_API_KEYS)} 🚀"
+    return f"Citron Live-Stream Engine: 100% | Auth: Bio-Locked | Active Keys: {len(GEMINI_API_KEYS)} 🚀"
 
 if __name__ == '__main__':
-    # Listen on Render-provided port or local fallback
     deployment_port = int(os.environ.get("PORT", 5000))
     print(f"🚀 JARVIS NEURAL NETWORK: Online on port {deployment_port}")
     app.run(host='0.0.0.0', port=deployment_port, debug=False)
