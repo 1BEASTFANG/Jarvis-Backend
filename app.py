@@ -88,26 +88,26 @@ def verify_voice():
             
             print(f"Match Score: {max_match_score * 100:.2f}%")
             
-            # Agar Match score 40% se kam hai, toh access denied aur text empty bhejo
-            if max_match_score < 0.40:
-                print("🔴 ACCESS DENIED BHEJ RAHA HOON...")
+            # 🔥 STRICTNESS UPGRADE: 0.40 se 0.60 kar diya gaya hai 🔥
+            # Agar bheed ka shor zyada hai aur teri aawaz clear nahi hai, toh turant reject!
+            if max_match_score < 0.60:
+                print("🔴 ACCESS DENIED (Score too low or too much background noise)...")
                 return jsonify({"status": "ACCESS_DENIED", "score": max_match_score, "text": ""})
             
-            print("🟢 ACCESS GRANTED! Ab audio ko Text mein badal rahe hain...")
+            print("🟢 ACCESS GRANTED! Nikhil's voice confirmed. Processing text...")
 
         # B. SPEECH TO TEXT (GROQ WHISPER)
-        # File pointer ko wapas 0 pe laana padega warna empty file jayegi
         audio_file.seek(0) 
         
         headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
         files = {'file': ('auth.wav', audio_file, 'audio/wav')}
         data = {
             'model': 'whisper-large-v3',
-            'language': 'hi', # Hindi/Hinglish ke liye set hai
-            'prompt': 'Nikhil, Harsh, Ranjan, Papa, Arvind, Pankaj Bhaiya, Citron,arvind,soaruv,vicky,piyush kumar,aryan,atul,rahul,abhijit,shabad,ruby,harshit,shivam'
+            'language': 'hi',
+            'prompt': 'Nikhil, Harsh, Ranjan, Papa, Arvind, Pankaj Bhaiya, Citron, arvind, soaruv, vicky, piyush kumar, aryan, atul, rahul, abhijit, shabad, ruby, harshit, shivam',
+            'temperature': '0.0' # 🔥 ANTI-HALLUCINATION FIX: Bheed ke shor ko words mein convert karne se rokega 🔥
         }
         
-        # Groq se transcription maango
         response = requests.post("https://api.groq.com/openai/v1/audio/transcriptions", headers=headers, files=files, data=data)
         
         spoken_text = ""
@@ -117,7 +117,6 @@ def verify_voice():
         else:
             print(f"⚠️ Groq STT Error: {response.text}")
             
-        # Pura package wapas phone ko bhejo
         return jsonify({
             "status": "ACCESS_GRANTED", 
             "score": max_match_score, 
@@ -165,6 +164,3 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Starting Flask Server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)
-
-
-
