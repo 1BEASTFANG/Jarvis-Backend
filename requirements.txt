@@ -1,4 +1,5 @@
 flask
+pvporcupine
 pveagle
-gunicorn
 requests
+google-generativeai
