@@ -3,3 +3,4 @@ pvporcupine
 pveagle
 requests
 google-generativeai
+gunicorn
