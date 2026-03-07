@@ -7,6 +7,12 @@ import os
 import threading
 import time
 import requests
+import google.generativeai as genai
+import json
+
+# 🔥 TERI GEMINI API KEY YAHAN DAAL 🔥
+GEMINI_API_KEY = "AIzaSy_TERI_GEMINI_KEY_YAHAN_DAALNA"
+genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
 
@@ -186,5 +192,6 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Starting Flask Server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)
+
 
 
