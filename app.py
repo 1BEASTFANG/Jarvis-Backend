@@ -92,6 +92,12 @@ def execute_gemini_task(model_name, prompt_text, audio_bytes, use_json_mode=Fals
             
         except Exception as e:
             err_msg = str(e).lower()
+
+            print("==================================================")
+            print(f"🚨 GOOGLE API REJECTED THE REQUEST!")
+            print(f"🔑 Key Index Used: {current_key_index}")
+            print(f"📜 EXACT ERROR FROM GOOGLE: {str(e)}")
+            print("==================================================")
             print(f"⚠️ API FAILURE: Attempt {attempts + 1} with Key [{current_key_index}] failed.")
             
             if "403" in err_msg and "leaked" in err_msg:
@@ -313,3 +319,4 @@ if __name__ == '__main__':
     deployment_port = int(os.environ.get("PORT", 5000))
     print(f"🚀 JARVIS NEURAL NETWORK: Online on port {deployment_port}")
     app.run(host='0.0.0.0', port=deployment_port, debug=False)
+
