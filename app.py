@@ -272,78 +272,7 @@ def process_class_lecture():
         print(f"❌ CHUNK PROCESSING FAILED: {str(ninja_err)}")
         return jsonify({"status": "ERROR", "message": str(ninja_err)}), 500
 
-# ==========================================================
-# 🥷 ROUTE 3: THE "STEALTH WHISPER" ACTIVE LISTENER
-# ==========================================================
-# ==========================================================
-# 🥷 ROUTE 3: THE "STEALTH WHISPER" ACTIVE LISTENER (SUPER STRICT)
-# ==========================================================
-@app.route('/stealth-listen', methods=['POST'])
-def stealth_listener_logic():
-    if 'audio' not in request.files:
-        return jsonify({"status": "ERROR", "message": "Missing audio input stream"}), 400
-    
-    audio_file = request.files['audio']
-    
-    try:
-        audio_buffer = audio_file.read()
-        print("--------------------------------------------------")
-        print("🥷 STEALTH WHISPER: Analyzing background ambient audio...")
-        print("--------------------------------------------------")
-        
-        # 🔥 THE AUTONOMOUS & STRICT AGENT PROMPT 🔥
-        listener_logic = """
-        You are 'Citron', an autonomous, hyper-intelligent AI assistant inside Nikhil's pocket. 
-        You are secretly analyzing a 30-60 second continuous audio chunk of his surroundings.
-        
-        YOUR CORE DIRECTIVE: Be a "Silent Guardian". Stay absolutely quiet UNLESS your intervention is highly valuable.
-        
-        STRICT RULES FOR INTERVENTION (must meet ALL criteria to set "should_intervene" to true):
-        1. ACADEMIC/TECHNICAL TRIGGERS: Nikhil or his friends MUST be discussing a complex topic (e.g., C++, Python, Data Structures, Physics, Mathematics, Django, exams, or logic).
-        2. CONFUSION/QUESTION DETECTED: Someone must explicitly ask a question, express doubt, or sound stuck on a problem (e.g., "Ye logic kaise banega?", "Semicolon kyu error de raha hai?", "Iska answer kya hai?").
-        3. HIGH CONFIDENCE: You must know the EXACT, 100% accurate factual answer. No guessing.
-        4. IGNORE CHITCHAT: If they are talking about movies, food, general gossip, or walking, YOU MUST STAY SILENT (should_intervene: false).
-        
-        OUTPUT PROTOCOL:
-        If intervening:
-        - "interruption_message": A polite, short whisper (e.g., "Sir, mujhe is bug ka reason pata hai. Batau?").
-        - "detailed_answer": A brilliantly explained, step-by-step solution in Hinglish (Hindi + English). Use extreme accuracy.
-        
-        If staying silent:
-        - Leave messages blank.
-        
-        OUTPUT SCHEMA (Strictly return ONLY valid JSON):
-        {
-          "should_intervene": true or false,
-          "interruption_message": "...",
-          "detailed_answer": "..."
-        }
-        """
-        
-        response_text = execute_gemini_task('gemini-2.5-flash', listener_logic, audio_buffer, use_json_mode=True)
-        
-        # Clean JSON explicitly
-        raw_text_clean = response_text.strip().replace('```json', '').replace('```', '').strip()
-        decision_data = json.loads(raw_text_clean)
-        
-        should_speak = decision_data.get("should_intervene", False)
-        
-        if should_speak:
-            print("⚠️🔥 STEALTH TRIGGERED! AI found a problem to solve!")
-            print(f"💡 AI Wants to say: {decision_data.get('interruption_message')}")
-        else:
-            print("💤 STEALTH MODE: Ambient noise / General talk. Staying silent.")
-            
-        return jsonify({
-            "status": "SUCCESS",
-            "should_intervene": should_speak,
-            "interruption_message": decision_data.get("interruption_message", ""),
-            "detailed_answer": decision_data.get("detailed_answer", "")
-        })
 
-    except Exception as err:
-        print(f"❌ STEALTH LISTENER FAILED: {str(err)}")
-        return jsonify({"status": "ERROR", "message": str(err)}), 500
 # ----------------------------------------------------------
 # 👤 ENROLLMENT SERVICE (IDENTITY TRAINING)
 # ----------------------------------------------------------
@@ -384,4 +313,3 @@ if __name__ == '__main__':
     deployment_port = int(os.environ.get("PORT", 5000))
     print(f"🚀 JARVIS NEURAL NETWORK: Online on port {deployment_port}")
     app.run(host='0.0.0.0', port=deployment_port, debug=False)
-
