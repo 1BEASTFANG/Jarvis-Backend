@@ -52,7 +52,6 @@ def get_active_gemini_client():
         raise Exception("❌ NO KEYS AVAILABLE: Define GEMINI_KEYS in Render.")
     
     active_key = GEMINI_API_KEYS[current_key_index]
-    # Naye SDK mein aise initialize karte hain
     return genai.Client(api_key=active_key)
 
 def rotate_api_key():
@@ -75,13 +74,11 @@ def execute_gemini_task(model_name, prompt_text, audio_bytes, use_json_mode=Fals
         try:
             client = get_active_gemini_client()
             
-            # Prepare contents (Prompt + Audio) using new SDK format
             contents = [
                 prompt_text,
                 types.Part.from_bytes(data=audio_bytes, mime_type='audio/wav')
             ]
             
-            # JSON mode config for Lecture Ninja
             config_options = types.GenerateContentConfig(
                 response_mime_type="application/json" if use_json_mode else "text/plain"
             )
@@ -103,7 +100,7 @@ def execute_gemini_task(model_name, prompt_text, audio_bytes, use_json_mode=Fals
             if "429" in err_msg or "403" in err_msg or "quota" in err_msg or "limit" in err_msg:
                 rotate_api_key()
                 attempts += 1
-                time.sleep(1.5) # Buffer before retry
+                time.sleep(1.5) 
             else:
                 print(f"🚨 UNEXPECTED EXCEPTION: {err_msg}")
                 raise e
@@ -141,7 +138,6 @@ except Exception as bio_err:
 # 🕒 SERVER PERSISTENCE LOOP
 # ----------------------------------------------------------
 def persistent_ping():
-    """Background thread to prevent Render from going to sleep"""
     while True:
         time.sleep(14 * 60)
         try:
@@ -204,7 +200,6 @@ def verify_voice_identity():
         RULES: Clean output only. No conversational filler.
         """
         
-        # New SDK wrapper call
         final_text = execute_gemini_task('gemini-2.5-flash', transcription_prompt, final_audio_stream, use_json_mode=False)
         print(f"📝 COMMAND CAPTURED: {final_text.strip()}")
             
@@ -237,7 +232,6 @@ def process_class_lecture():
         print("🧠 LECTURE NINJA: Deep-Processing Audio Segment...")
         print("--------------------------------------------------")
         
-        # 🔥 THE STRICT "PROPER NOTES FORMAT" PROMPT 🔥
         strict_logic = """
         You are 'Citron', a highly intelligent AI Note-Taker.
         You are receiving a short AUDIO CHUNK from a live, continuous college lecture.
@@ -261,10 +255,8 @@ def process_class_lecture():
         }
         """
         
-        # Execute with JSON mode enforced via the new SDK
         response_text = execute_gemini_task('gemini-2.5-flash', strict_logic, lecture_buffer, use_json_mode=True)
         
-        # Parse JSON
         raw_text_clean = response_text.strip().replace('```json', '').replace('```', '').strip()
         json_notes_final = json.loads(raw_text_clean)
         
@@ -279,6 +271,66 @@ def process_class_lecture():
     except Exception as ninja_err:
         print(f"❌ CHUNK PROCESSING FAILED: {str(ninja_err)}")
         return jsonify({"status": "ERROR", "message": str(ninja_err)}), 500
+
+# ==========================================================
+# 🥷 ROUTE 3: THE "STEALTH WHISPER" ACTIVE LISTENER
+# ==========================================================
+@app.route('/stealth-listen', methods=['POST'])
+def stealth_listener_logic():
+    if 'audio' not in request.files:
+        return jsonify({"status": "ERROR", "message": "Missing audio input stream"}), 400
+    
+    audio_file = request.files['audio']
+    
+    try:
+        audio_buffer = audio_file.read()
+        print("--------------------------------------------------")
+        print("🥷 STEALTH WHISPER: Analyzing background conversation...")
+        print("--------------------------------------------------")
+        
+        # 🔥 THE AUTONOMOUS AGENT PROMPT 🔥
+        listener_logic = """
+        You are 'Citron', an autonomous AI assistant inside Nikhil's pocket. 
+        You are secretly listening to the background conversation happening in this short audio chunk.
+        
+        YOUR MISSION:
+        Analyze the conversation. Does it contain a direct question, a tough college topic (like C++, Physics, Data Structures), an argument, or someone expressing confusion? 
+        If the people talking are just chatting normally, you stay silent. 
+        BUT, if they are stuck on a problem or asking a question you know the answer to, you must step in!
+
+        RULES:
+        1. If they are talking about normal things (food, going out, hi/hello), set "should_intervene" to false.
+        2. If they mention a doubt, an exam topic, a complex question, or explicitly ask for help, set "should_intervene" to true.
+        3. If true, provide the polite interruption message (e.g., "Sir, I think I know the answer to that. Should I explain?") AND the detailed answer in Hinglish.
+        
+        OUTPUT SCHEMA (Valid JSON Only):
+        {
+          "should_intervene": true or false,
+          "interruption_message": "What you will say to interrupt politely (only if true)",
+          "detailed_answer": "The actual answer to the problem they are discussing (only if true)"
+        }
+        """
+        
+        response_text = execute_gemini_task('gemini-2.5-flash', listener_logic, audio_buffer, use_json_mode=True)
+        
+        raw_text_clean = response_text.strip().replace('```json', '').replace('```', '').strip()
+        decision_data = json.loads(raw_text_clean)
+        
+        if decision_data.get("should_intervene") == True:
+            print("⚠️ STEALTH TRIGGERED: Citron is ready to answer!")
+        else:
+            print("💤 STEALTH MODE: Normal conversation, staying silent.")
+            
+        return jsonify({
+            "status": "SUCCESS",
+            "should_intervene": decision_data.get("should_intervene", False),
+            "interruption_message": decision_data.get("interruption_message", ""),
+            "detailed_answer": decision_data.get("detailed_answer", "")
+        })
+
+    except Exception as err:
+        print(f"❌ STEALTH LISTENER FAILED: {str(err)}")
+        return jsonify({"status": "ERROR", "message": str(err)}), 500
 
 # ----------------------------------------------------------
 # 👤 ENROLLMENT SERVICE (IDENTITY TRAINING)
